@@ -49,6 +49,7 @@ def reduce_args(config_stub, version_patcher, monkeypatch):
     """Make sure no --disable-shared-workers/referer argument get added."""
     version_patcher('5.15.3')
     config_stub.val.content.headers.referer = 'always'
+    config_stub.val.content.webrtc_ip_handling_policy = 'all-interfaces'
     config_stub.val.scrolling.bar = 'never'
     config_stub.val.qt.chromium.experimental_web_platform_features = 'never'
     config_stub.val.qt.workarounds.disable_accelerated_2d_canvas = 'never'

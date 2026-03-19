@@ -110,7 +110,7 @@ class TestSetCookies:
         monkeypatch.setattr(objects, 'debug_flags', ['log-cookies'])
         ram_jar.setCookiesFromUrl([cookie], url)
 
-        expected = "Cookie on http://example.com/ -> applying setting all"
+        expected = "Cookie on http://example.com/ -> applying setting no-3rdparty"
         assert caplog.messages == [expected]
 
 

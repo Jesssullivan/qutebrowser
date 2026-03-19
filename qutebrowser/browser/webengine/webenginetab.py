@@ -1315,8 +1315,8 @@ class _WebEngineWebAuth(QObject):
             mode=usertypes.PromptMode.pwd,
             abort_on=[self._tab.abort_questions, self.request_cancelled])
 
-        if self._request is None:
-            return
+        if self._request is None:  # type: ignore[unreachable]
+            return  # re-entrant: request can be cancelled during message.ask()
         if answer is not None:
             log.webview.debug("WebAuthn PIN accepted by user")
             self._request.setPin(answer)
@@ -1347,8 +1347,8 @@ class _WebEngineWebAuth(QObject):
             mode=usertypes.PromptMode.select,
             abort_on=[self._tab.abort_questions, self.request_cancelled])
 
-        if self._request is None:
-            return
+        if self._request is None:  # type: ignore[unreachable]
+            return  # re-entrant: request can be cancelled during message.ask()
         if answer is not None:
             log.webview.debug(f"WebAuthn account selected: {answer}")
             self._request.setSelectedAccount(answer)

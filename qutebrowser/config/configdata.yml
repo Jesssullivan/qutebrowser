@@ -1288,6 +1288,14 @@ content.user_stylesheets:
   default: []
   desc: List of user stylesheet filenames to use.
 
+content.webauthn:
+  default: true
+  type: Bool
+  supports_pattern: true
+  backend: QtWebEngine
+  desc: Allow websites to use WebAuthn (FIDO2/passkey) for authentication.
+    Requires Qt 6.7 or newer.
+
 content.webgl:
   default: true
   type: Bool

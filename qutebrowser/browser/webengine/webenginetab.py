@@ -10,10 +10,11 @@ import functools
 import dataclasses
 import re
 import html as html_utils
-from typing import cast, Union, Optional
+from typing import cast, Union, Optional, Any
 
 from qutebrowser.qt.core import (pyqtSignal, pyqtSlot, Qt, QPoint, QPointF, QUrl,
                           QObject, QByteArray, QTimer)
+from qutebrowser.qt.widgets import QWidget
 from qutebrowser.qt.network import QAuthenticator
 from qutebrowser.qt.webenginecore import QWebEnginePage, QWebEngineScript, QWebEngineHistory
 
@@ -27,6 +28,15 @@ from qutebrowser.utils import (usertypes, qtutils, log, javascript, utils,
                                resources, message, jinja, debug, version, urlutils)
 from qutebrowser.qt import sip, machinery
 from qutebrowser.misc import objects, miscwidgets
+
+if machinery.IS_QT6:
+    try:
+        from qutebrowser.qt.webenginecore import QWebEngineWebAuthUxRequest
+    except ImportError:
+        # Added in Qt 6.7
+        QWebEngineWebAuthUxRequest: None = None  # type: ignore[no-redef]
+else:
+    QWebEngineWebAuthUxRequest: Any = None
 
 
 # Mapping worlds from usertypes.JsWorld to QWebEngineScript world IDs.
@@ -1241,6 +1251,223 @@ class _WebEngineScripts(QObject):
                 )
 
 
+class _WebEngineWebAuth(QObject):
+
+    """Handling of WebAuthn UX events via QWebEngineWebAuthUxRequest (Qt 6.7+).
+
+    Signals:
+        request_cancelled: Emitted when a WebAuthn request was cancelled,
+            used to abort open PIN/selection prompts without affecting
+            other questions.
+    """
+
+    request_cancelled = pyqtSignal()
+
+    def __init__(self, tab: "WebEngineTab", parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self._tab = tab
+        self._request: Optional[QWebEngineWebAuthUxRequest] = None
+
+    def on_ux_requested(self, request: QWebEngineWebAuthUxRequest) -> None:
+        """Handle a WebAuthn UX request from QWebEnginePage."""
+        url = QUrl(f"https://{request.relyingPartyId()}")
+        if not config.instance.get('content.webauthn', url=url):
+            log.webview.debug(f"WebAuthn denied by config for "
+                              f"{request.relyingPartyId()}")
+            request.cancel()
+            return
+
+        log.webview.debug(f"WebAuthn UX requested for "
+                          f"{request.relyingPartyId()}")
+        self._request = request
+        request.stateChanged.connect(self._on_ux_state_changed)
+        self._on_ux_state_changed(request.state())
+
+    def _on_ux_state_changed(
+        self, state: "QWebEngineWebAuthUxRequest.WebAuthUxState"
+    ) -> None:
+        log.webview.debug(f"WebAuthn UX state: {state}")
+        if state == QWebEngineWebAuthUxRequest.WebAuthUxState.CollectPin:
+            self._ux_collect_pin()
+        elif state == QWebEngineWebAuthUxRequest.WebAuthUxState.FinishTokenCollection:
+            self._ux_finish_token_collection()
+        elif state == QWebEngineWebAuthUxRequest.WebAuthUxState.SelectAccount:
+            self._ux_select_account()
+        elif state == QWebEngineWebAuthUxRequest.WebAuthUxState.Completed:
+            self._ux_request_completed()
+        elif state == QWebEngineWebAuthUxRequest.WebAuthUxState.Cancelled:
+            self._ux_request_cancelled()
+        elif state == QWebEngineWebAuthUxRequest.WebAuthUxState.RequestFailed:
+            self._ux_request_failed()
+        else:
+            raise utils.Unreachable(state)
+
+    def _ux_collect_pin(self) -> None:
+        if self._request is None:
+            return
+        rp_id = self._request.relyingPartyId()
+        context_text = self._get_pin_context_text(self._request.pinRequest())
+        log.webview.debug(f"Collecting WebAuthn PIN for {rp_id}")
+
+        answer = message.ask(
+            title=f"WebAuthn Verification for {rp_id}",
+            text=context_text,
+            mode=usertypes.PromptMode.pwd,
+            abort_on=[self._tab.abort_questions, self.request_cancelled])
+
+        if self._request is None:
+            return
+        if answer is not None:
+            log.webview.debug("WebAuthn PIN accepted by user")
+            self._request.setPin(answer)
+        else:
+            log.webview.debug("WebAuthn PIN entry aborted by user")
+            self._request.cancel()
+
+    def _ux_finish_token_collection(self) -> None:
+        log.webview.debug("WebAuthn: waiting for token touch")
+        message.info("Please touch your security key now.")
+
+    def _ux_select_account(self) -> None:
+        if self._request is None:
+            return
+        rp_id = self._request.relyingPartyId()
+        usernames = list(self._request.userNames())
+        log.webview.debug(f"WebAuthn account selection for {rp_id}")
+
+        numbered = "".join(
+            f"<li><b>{i+1}.</b> {html_utils.escape(name)}</li>"
+            for i, name in enumerate(usernames))
+        text = f"Please select an account (enter number):<br><ul>{numbered}</ul>"
+
+        answer = message.ask(
+            title=f"WebAuthn Account Selection for {rp_id}",
+            text=text,
+            choices=usernames,
+            mode=usertypes.PromptMode.select,
+            abort_on=[self._tab.abort_questions, self.request_cancelled])
+
+        if self._request is None:
+            return
+        if answer is not None:
+            log.webview.debug(f"WebAuthn account selected: {answer}")
+            self._request.setSelectedAccount(answer)
+        else:
+            log.webview.debug("WebAuthn account selection aborted by user")
+            self._request.cancel()
+
+    def _ux_request_completed(self) -> None:
+        log.webview.debug("WebAuthn request completed")
+        message.info("Authentication completed.")
+        self._cleanup_request()
+
+    def _ux_request_cancelled(self) -> None:
+        log.webview.debug("WebAuthn request cancelled")
+        message.info("Authentication cancelled.")
+        self.request_cancelled.emit()
+        self._cleanup_request()
+
+    def _ux_request_failed(self) -> None:
+        if self._request is None:
+            return
+        reason = self._request.requestFailureReason()
+        rp_id = self._request.relyingPartyId()
+        reason_text = self._get_failure_reason_text(reason)
+        log.webview.debug(f"WebAuthn request failed for {rp_id}: {reason}")
+        message.error(f"Authentication failed: {reason_text}")
+        self._cleanup_request()
+
+    def _get_failure_reason_text(
+        self, reason: "QWebEngineWebAuthUxRequest.RequestFailureReason"
+    ) -> str:
+        R = QWebEngineWebAuthUxRequest.RequestFailureReason
+        texts = {
+            R.Timeout:
+                "The request timed out.",
+            R.KeyNotRegistered:
+                "The key is not registered.",
+            R.KeyAlreadyRegistered:
+                "You already registered this device.",
+            R.SoftPinBlock:
+                "The device is soft-locked because the wrong PIN was entered "
+                "too many times. Please reinsert the key and try again.",
+            R.HardPinBlock:
+                "The device is hard-locked because the wrong PIN was entered "
+                "too many times. The authenticator must be reset.",
+            R.AuthenticatorRemovedDuringPinEntry:
+                "The device was removed during verification. Please reinsert "
+                "and try again.",
+            R.AuthenticatorMissingResidentKeys:
+                "The device does not support resident keys.",
+            R.AuthenticatorMissingUserVerification:
+                "The device is missing user verification.",
+            R.AuthenticatorMissingLargeBlob:
+                "The device does not support large blob storage.",
+            R.NoCommonAlgorithms:
+                "No common algorithms between server and authenticator.",
+            R.StorageFull:
+                "The storage on the device is full.",
+            R.UserConsentDenied:
+                "User consent was denied.",
+            R.WinUserCancelled:
+                "The request was cancelled.",
+        }
+        if reason not in texts:
+            raise utils.Unreachable(reason)
+        return texts[reason]
+
+    def _get_pin_context_text(self, pin_request: Any) -> str:
+        """Build a descriptive prompt from the PIN request details."""
+        parts = []
+
+        # PIN entry reason
+        R = QWebEngineWebAuthUxRequest.PinEntryReason
+        reason_texts = {
+            R.Set: "Please set a new PIN for your device:",
+            R.Change: "Please change the PIN for your device:",
+            R.Challenge: "Please enter the PIN for your device:",
+        }
+        parts.append(reason_texts.get(pin_request.reason,
+                                      "Please enter your PIN:"))
+
+        # Previous error
+        E = QWebEngineWebAuthUxRequest.PinEntryError
+        error_texts = {
+            E.InternalUvLocked: "Internal verification locked, falling back to PIN.",
+            E.WrongPin: "Wrong PIN entered.",
+            E.TooShort: "PIN is too short.",
+            E.InvalidCharacters: "PIN contains invalid characters.",
+            E.SameAsCurrentPin: "New PIN must be different from current PIN.",
+        }
+        if pin_request.error != E.NoError:
+            parts.append(f"<br><b>Error:</b> "
+                         f"{error_texts.get(pin_request.error, 'Unknown error.')}")
+
+        # Min length
+        if pin_request.minPinLength > 0:
+            parts.append(f"<br>Minimum length: {pin_request.minPinLength} characters")
+
+        # Remaining attempts
+        if pin_request.remainingAttempts > 0:
+            if pin_request.remainingAttempts == 1:
+                parts.append("<br><b>WARNING: Last attempt before lockout!</b>")
+            else:
+                parts.append(f"<br>Remaining attempts: "
+                             f"{pin_request.remainingAttempts}")
+
+        return "".join(parts)
+
+    def _cleanup_request(self) -> None:
+        """Clean up the current request reference."""
+        if self._request is not None:
+            try:
+                self._request.stateChanged.disconnect(
+                    self._on_ux_state_changed)
+            except (TypeError, RuntimeError):
+                pass
+        self._request = None
+
+
 class WebEngineTabPrivate(browsertab.AbstractTabPrivate):
 
     """QtWebEngine-related methods which aren't part of the public API."""
@@ -1308,6 +1535,8 @@ class WebEngineTab(browsertab.AbstractTab):
                                                tab=self)
         self._permissions = _WebEnginePermissions(tab=self, parent=self)
         self._scripts = _WebEngineScripts(tab=self, parent=self)
+        if QWebEngineWebAuthUxRequest is not None:
+            self._webauth = _WebEngineWebAuth(tab=self, parent=self)
         # We're assigning settings in _set_widget
         self.settings = webenginesettings.WebEngineSettings(settings=None)
         self._set_widget(widget)
@@ -1735,6 +1964,8 @@ class WebEngineTab(browsertab.AbstractTab):
         page.loadStarted.connect(self._on_load_started)
         page.certificate_error.connect(self._on_ssl_errors)
         page.authenticationRequired.connect(self._on_authentication_required)
+        if machinery.IS_QT6 and QWebEngineWebAuthUxRequest is not None:
+            page.webAuthUxRequested.connect(self._webauth.on_ux_requested)
         page.proxyAuthenticationRequired.connect(
             self._on_proxy_authentication_required)
         page.contentsSizeChanged.connect(self.contents_size_changed)

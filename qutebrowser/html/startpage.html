@@ -2,7 +2,7 @@
 
 {% block style %}
 body {
-    background-color: #263238;
+    background-color: #1a1a2e;
     font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
@@ -12,8 +12,8 @@ body {
 }
 
 .header {
-    margin-top: 120px;
-    margin-bottom: 80px;
+    margin-top: 100px;
+    margin-bottom: 60px;
 }
 
 .title-container {
@@ -26,9 +26,19 @@ body {
 }
 
 .logo {
-    width: 105px;
-    height: 105px;
+    width: 120px;
+    height: 120px;
     margin-bottom: 20px;
+}
+
+.fork-label {
+    text-align: center;
+    font-size: 13px;
+    color: #F5A9B8;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: -10px;
+    margin-bottom: 25px;
 }
 
 input {
@@ -38,14 +48,20 @@ input {
     width: 600px;
     padding: 8px;
     box-sizing: border-box;
-    border: 1px solid transparent;
+    border: 1px solid #5BCEFA33;
     border-radius: 8px;
-    background-color: #4e4f63db;
-    color: #cce1f7;
+    background-color: #16213e;
+    color: #e8f0fe;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus {
+    border-color: #5BCEFA;
+    box-shadow: 0 0 12px #5BCEFA44;
 }
 
 input::placeholder {
-    color: #bccbda;
+    color: #F5A9B888;
 }
 
 .bookmarks {
@@ -54,8 +70,8 @@ input::placeholder {
 }
 
 .bookmark-container {
-    border-color: #222d32;
-    background-color: #222d32;
+    border-color: #5BCEFA22;
+    background-color: #16213e;
     border-radius: 8px;
     border-width: 1px;
     border-style: solid;
@@ -68,7 +84,7 @@ input::placeholder {
     font-size: 25px;
     font-family: monospace;
     padding: 10px 10px 0 10px;
-    color: #84b4e6;
+    color: #5BCEFA;
 }
 
 .link-container {
@@ -81,39 +97,56 @@ a {
 }
 
 a:link, a:visited {
-    color: #bdc4d4;
+    color: #F5A9B8;
+}
+
+a:hover {
+    color: #FFFFFF;
 }
 
 @media (prefers-color-scheme: light) {
     body {
-        background-color: #f9fcff;
+        background-color: #f8f9ff;
     }
 
     input {
-        background-color: #f4f7fffc;
-        color: #4380c3;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        background-color: #ffffff;
+        color: #2a1a3a;
+        border-color: #F5A9B844;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    input:focus {
+        border-color: #5BCEFA;
+        box-shadow: 0 0 12px #5BCEFA44;
     }
 
     input::placeholder {
-        color: #7b87a5;
+        color: #9a8aaa;
     }
 
     .bookmark-container {
         margin-bottom: 20px;
-        background-color: #f4f7ff66;
-        border-color: #f4f7ff66;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        background-color: #ffffff;
+        border-color: #5BCEFA33;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
     }
 
     .bookmark-container-title {
-        color: #4b91da;
+        color: #5BCEFA;
     }
 
     a:link, a:visited {
-        color: #4b5a80;
+        color: #d4608a;
     }
 
+    a:hover {
+        color: #2a1a3a;
+    }
+
+    .fork-label {
+        color: #d4608a;
+    }
 }
 {% endblock %}
 
@@ -121,8 +154,9 @@ a:link, a:visited {
 <div class="wrapper">
   <div class="header">
     <div class="title-container">
-      <img class="logo" src="{{ resource_url('icons/qutebrowser.svg') }}">
+      <img class="logo" src="{{ resource_url('icons/qutebrowser-yubiqt.svg') }}">
     </div>
+    <div class="fork-label">YubiQT</div>
     <div class="search-box title-container" id="search">
       <form>
         <input type="text" size="50" name="q" placeholder="Search the web" id="search-field"/>
@@ -154,13 +188,16 @@ a:link, a:visited {
     <div class="bookmark-container">
       <h4 class="bookmark-container-title">Getting Started</h4>
       <div class="link-container">
-        <a href="https://qutebrowser.org">Official Website</a>
+        <a href="https://github.com/Jesssullivan/qutebrowser">YubiQT Fork</a>
+      </div>
+      <div class="link-container">
+        <a href="https://qutebrowser.org">Upstream qutebrowser</a>
       </div>
       <div class="link-container">
         <a href="qute://help/quickstart.html">Quickstart</a>
       </div>
       <div class="link-container">
-        <a href="qute://help/changelog.html">Changelog</a>
+        <a href="https://search.hewow.gay/preferences">Search Preferences</a>
       </div>
     </div>
   </div>

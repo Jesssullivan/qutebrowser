@@ -148,7 +148,7 @@ jobs:
 
           tar czf ~/rpmbuild/SOURCES/"qutebrowser-${PKG_VERSION}.tar.gz" \
             --transform="s,^,qutebrowser-${PKG_VERSION}/," \
-            qutebrowser/ misc/ setup.py pyproject.toml requirements.txt
+            qutebrowser/ misc/ setup.py pyproject.toml requirements.txt LICENSE
 
           cat > ~/rpmbuild/SPECS/qutebrowser.spec << SPEC
           Name:           qutebrowser-yubiqt

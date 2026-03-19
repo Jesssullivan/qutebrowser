@@ -232,6 +232,81 @@ class TestFindFlags:
         assert str(flags) == expected
 
 
+class TestWebEngineWebAuth:
+
+    """Tests for the _WebEngineWebAuth handler."""
+
+    @pytest.fixture(autouse=True)
+    def skip_if_no_webauth(self):
+        if webenginetab.QWebEngineWebAuthUxRequest is None:
+            pytest.skip("QWebEngineWebAuthUxRequest not available")
+
+    def test_failure_reason_texts_exhaustive(self):
+        """Ensure all RequestFailureReason values are covered."""
+        rfr = webenginetab.QWebEngineWebAuthUxRequest.RequestFailureReason
+        webauth = webenginetab._WebEngineWebAuth.__new__(
+            webenginetab._WebEngineWebAuth)
+        for member in rfr:
+            # Should not raise
+            text = webauth._get_failure_reason_text(member)
+            assert isinstance(text, str)
+            assert len(text) > 0
+
+    @staticmethod
+    def _make_pin_request(reason, error, min_length=0, remaining=0):
+        """Create a fake QWebEngineWebAuthPinRequest-like object."""
+        return type('FakePinRequest', (), {
+            'reason': reason,
+            'error': error,
+            'minPinLength': min_length,
+            'remainingAttempts': remaining,
+        })()
+
+    def test_pin_context_text_challenge(self):
+        """PIN context for a challenge request with no error."""
+        webauth = webenginetab._WebEngineWebAuth.__new__(
+            webenginetab._WebEngineWebAuth)
+        ux = webenginetab.QWebEngineWebAuthUxRequest
+        req = self._make_pin_request(
+            ux.PinEntryReason.Challenge, ux.PinEntryError.NoError,
+            min_length=4, remaining=3)
+        text = webauth._get_pin_context_text(req)
+        assert "Please enter the PIN" in text
+        assert "4 characters" in text
+        assert "3" in text
+
+    def test_pin_context_text_wrong_pin(self):
+        """PIN context when previous attempt had wrong PIN."""
+        webauth = webenginetab._WebEngineWebAuth.__new__(
+            webenginetab._WebEngineWebAuth)
+        ux = webenginetab.QWebEngineWebAuthUxRequest
+        req = self._make_pin_request(
+            ux.PinEntryReason.Challenge, ux.PinEntryError.WrongPin,
+            remaining=1)
+        text = webauth._get_pin_context_text(req)
+        assert "Wrong PIN" in text
+        assert "Last attempt" in text
+
+    def test_pin_context_text_set_new(self):
+        """PIN context for setting a new PIN."""
+        webauth = webenginetab._WebEngineWebAuth.__new__(
+            webenginetab._WebEngineWebAuth)
+        ux = webenginetab.QWebEngineWebAuthUxRequest
+        req = self._make_pin_request(
+            ux.PinEntryReason.Set, ux.PinEntryError.NoError,
+            min_length=6)
+        text = webauth._get_pin_context_text(req)
+        assert "Please set a new PIN" in text
+
+    def test_cleanup_request_when_none(self):
+        """_cleanup_request should handle None request safely."""
+        webauth = webenginetab._WebEngineWebAuth.__new__(
+            webenginetab._WebEngineWebAuth)
+        webauth._request = None
+        webauth._cleanup_request()
+        assert webauth._request is None
+
+
 class TestWebEnginePermissions:
 
     def test_clipboard_value(self):

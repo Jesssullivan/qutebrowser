@@ -1,0 +1,266 @@
+name: YubiQT — Build & Package
+
+on:
+  push:
+    branches: [main, sid/*]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.13"
+  QUTE_VERSION: "3.6.3+yubiqt"
+  ATTIC_SERVER: "https://nix-cache.fuzzy-dev.tinyland.dev"
+  ATTIC_CACHE: "main"
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Nix build + push to Attic cache
+  # ---------------------------------------------------------------------------
+  nix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            accept-flake-config = true
+
+      - name: Build nix package
+        id: build
+        run: |
+          result=$(nix build .#default --no-link --print-out-paths)
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Push to Attic cache
+        if: env.ATTIC_TOKEN != '' && github.event_name == 'push'
+        env:
+          ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
+        run: |
+          nix profile install nixpkgs#attic-client || true
+          attic login tinyland "${{ env.ATTIC_SERVER }}" "$ATTIC_TOKEN" || true
+          attic push "${{ env.ATTIC_CACHE }}" "${{ steps.build.outputs.result }}" || true
+
+      - name: Smoke test
+        run: |
+          result="${{ steps.build.outputs.result }}"
+          test -x "$result/bin/qutebrowser"
+          echo "Nix build OK: $result"
+
+  # ---------------------------------------------------------------------------
+  # Debian (.deb)
+  # ---------------------------------------------------------------------------
+  deb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: debian:bookworm
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq \
+            git python3 python3-pip python3-venv python3-dev \
+            dpkg-dev fakeroot \
+            python3-jinja2 python3-yaml python3-pygments \
+            2>/dev/null || true
+      - uses: actions/checkout@v4
+      - name: Build .deb
+        run: |
+          set -e
+
+          PKG_NAME="qutebrowser-yubiqt"
+          PKG_VERSION="${QUTE_VERSION%+*}"
+          BUILD_DIR="debian_build"
+          DEB_ROOT="${BUILD_DIR}/${PKG_NAME}_${PKG_VERSION}_amd64"
+
+          mkdir -p "${DEB_ROOT}/DEBIAN"
+          mkdir -p "${DEB_ROOT}/usr/bin"
+          mkdir -p "${DEB_ROOT}/usr/share/applications"
+          mkdir -p "${DEB_ROOT}/usr/lib/python3/dist-packages"
+
+          cp -r qutebrowser "${DEB_ROOT}/usr/lib/python3/dist-packages/"
+
+          cat > "${DEB_ROOT}/usr/bin/qutebrowser" << 'LAUNCHER'
+          #!/usr/bin/env python3
+          import sys
+          from qutebrowser import qutebrowser
+          sys.exit(qutebrowser.main())
+          LAUNCHER
+          chmod +x "${DEB_ROOT}/usr/bin/qutebrowser"
+
+          cp misc/org.qutebrowser.qutebrowser.desktop \
+             "${DEB_ROOT}/usr/share/applications/"
+
+          cat > "${DEB_ROOT}/DEBIAN/control" << EOF
+          Package: ${PKG_NAME}
+          Version: ${PKG_VERSION}
+          Section: web
+          Priority: optional
+          Architecture: amd64
+          Depends: python3 (>= 3.9), python3-pyqt6, python3-pyqt6.qtwebengine (>= 6.7), python3-jinja2, python3-yaml
+          Recommends: python3-pygments, python3-adblock
+          Maintainer: Jess <jess@jessesullivan.dev>
+          Description: qutebrowser with FIDO2/WebAuthn YubiKey support
+           A keyboard-driven web browser based on QtWebEngine with
+           seamless FIDO2/WebAuthn/YubiKey authentication support.
+          EOF
+
+          dpkg-deb --build "${DEB_ROOT}"
+          mkdir -p dist
+          mv "${BUILD_DIR}"/*.deb dist/
+          ls -lh dist/*.deb
+      - name: Upload .deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: qutebrowser-deb
+          path: dist/*.deb
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # RPM (.rpm)
+  # ---------------------------------------------------------------------------
+  rpm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: fedora:41
+    steps:
+      - name: Install build tools
+        run: |
+          dnf install -y -q \
+            git python3 python3-pip python3-devel python3-setuptools \
+            rpm-build \
+            python3-jinja2 python3-pyyaml python3-pygments \
+            2>/dev/null || true
+      - uses: actions/checkout@v4
+      - name: Build .rpm
+        run: |
+          set -e
+
+          PKG_VERSION="${QUTE_VERSION%+*}"
+          RPM_RELEASE="1.yubiqt"
+
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+          tar czf ~/rpmbuild/SOURCES/"qutebrowser-${PKG_VERSION}.tar.gz" \
+            --transform="s,^,qutebrowser-${PKG_VERSION}/," \
+            qutebrowser/ misc/ setup.py pyproject.toml requirements.txt LICENSE
+
+          cat > ~/rpmbuild/SPECS/qutebrowser.spec << SPEC
+          Name:           qutebrowser-yubiqt
+          Version:        ${PKG_VERSION}
+          Release:        ${RPM_RELEASE}%{?dist}
+          Summary:        qutebrowser with FIDO2/WebAuthn YubiKey support
+          License:        GPL-3.0-or-later
+          URL:            https://github.com/Jesssullivan/qutebrowser
+          Source0:        qutebrowser-%{version}.tar.gz
+
+          BuildArch:      noarch
+          BuildRequires:  python3-devel python3-setuptools
+          Requires:       python3 python3-qt6-webengine >= 6.7
+          Requires:       python3-jinja2 python3-pyyaml
+
+          %description
+          A keyboard-driven web browser based on QtWebEngine with
+          seamless FIDO2/WebAuthn/YubiKey authentication support.
+
+          %prep
+          %autosetup -n qutebrowser-%{version}
+
+          %install
+          mkdir -p %{buildroot}%{python3_sitelib}
+          cp -r qutebrowser %{buildroot}%{python3_sitelib}/
+
+          mkdir -p %{buildroot}%{_bindir}
+          cat > %{buildroot}%{_bindir}/qutebrowser << 'LAUNCHER'
+          #!/usr/bin/env python3
+          import sys
+          from qutebrowser import qutebrowser
+          sys.exit(qutebrowser.main())
+          LAUNCHER
+          chmod +x %{buildroot}%{_bindir}/qutebrowser
+
+          mkdir -p %{buildroot}%{_datadir}/applications
+          cp misc/org.qutebrowser.qutebrowser.desktop \
+             %{buildroot}%{_datadir}/applications/
+
+          %files
+          %license LICENSE
+          %{_bindir}/qutebrowser
+          %{python3_sitelib}/qutebrowser/
+          %{_datadir}/applications/org.qutebrowser.qutebrowser.desktop
+          SPEC
+
+          rpmbuild -bb ~/rpmbuild/SPECS/qutebrowser.spec
+          mkdir -p dist
+          cp ~/rpmbuild/RPMS/noarch/*.rpm dist/
+          ls -lh dist/*.rpm
+      - name: Upload .rpm
+        uses: actions/upload-artifact@v4
+        with:
+          name: qutebrowser-rpm
+          path: dist/*.rpm
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # macOS — .dmg via PyInstaller
+  # ---------------------------------------------------------------------------
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            name: macos-apple-silicon
+          - os: macos-15-intel
+            name: macos-intel
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -U -r misc/requirements/requirements-tox.txt
+      - name: Build .dmg
+        run: |
+          tox -e build-release -- --gh-token ${{ secrets.GITHUB_TOKEN }}
+      - name: Gather info
+        id: info
+        run: |
+          echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Upload .dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: qutebrowser-${{ steps.info.outputs.date }}-${{ steps.info.outputs.sha_short }}-${{ matrix.name }}
+          path: dist/qutebrowser-*.dmg
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Release — publish artifacts on tag push
+  # ---------------------------------------------------------------------------
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [nix, deb, rpm, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            qutebrowser-deb/*.deb
+            qutebrowser-rpm/*.rpm
+            qutebrowser-*-macos-*/*.dmg
+          draft: false
+          generate_release_notes: true

@@ -10,7 +10,7 @@ pythonPackages.buildPythonApplication rec {
   version = "3.6.3+yubiqt";
   format = "setuptools";
 
-  src = ./..;
+  src = pkgs.lib.cleanSource ./..;
 
   nativeBuildInputs = with pkgs; [
     qt6.wrapQtAppsHook

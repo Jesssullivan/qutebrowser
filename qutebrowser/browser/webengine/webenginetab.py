@@ -1315,8 +1315,15 @@ class _WebEngineWebAuth(QObject):
             mode=usertypes.PromptMode.pwd,
             abort_on=[self._tab.abort_questions, self.request_cancelled])
 
+        # Re-fetch: the nested event loop inside message.ask() can process
+        # stateChanged signals that call _cleanup_request(), setting _request
+        # to None before we get here.
+        self._handle_pin_response(answer)
+
+    def _handle_pin_response(self, answer: Optional[str]) -> None:
+        """Process the PIN prompt result, re-checking request validity."""
         if self._request is None:
-            return  # re-entrant: request can be cancelled during message.ask()
+            return
         if answer is not None:
             log.webview.debug("WebAuthn PIN accepted by user")
             self._request.setPin(answer)
@@ -1347,8 +1354,13 @@ class _WebEngineWebAuth(QObject):
             mode=usertypes.PromptMode.select,
             abort_on=[self._tab.abort_questions, self.request_cancelled])
 
+        # Re-fetch: nested event loop can invalidate _request (see _handle_pin_response)
+        self._handle_account_response(answer)
+
+    def _handle_account_response(self, answer: Optional[str]) -> None:
+        """Process the account selection result, re-checking request validity."""
         if self._request is None:
-            return  # re-entrant: request can be cancelled during message.ask()
+            return
         if answer is not None:
             log.webview.debug(f"WebAuthn account selected: {answer}")
             self._request.setSelectedAccount(answer)

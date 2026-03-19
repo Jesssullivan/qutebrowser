@@ -1380,36 +1380,36 @@ class _WebEngineWebAuth(QObject):
     def _get_failure_reason_text(
         self, reason: "QWebEngineWebAuthUxRequest.RequestFailureReason"
     ) -> str:
-        R = QWebEngineWebAuthUxRequest.RequestFailureReason
+        rfr = QWebEngineWebAuthUxRequest.RequestFailureReason
         texts = {
-            R.Timeout:
+            rfr.Timeout:
                 "The request timed out.",
-            R.KeyNotRegistered:
+            rfr.KeyNotRegistered:
                 "The key is not registered.",
-            R.KeyAlreadyRegistered:
+            rfr.KeyAlreadyRegistered:
                 "You already registered this device.",
-            R.SoftPinBlock:
+            rfr.SoftPinBlock:
                 "The device is soft-locked because the wrong PIN was entered "
                 "too many times. Please reinsert the key and try again.",
-            R.HardPinBlock:
+            rfr.HardPinBlock:
                 "The device is hard-locked because the wrong PIN was entered "
                 "too many times. The authenticator must be reset.",
-            R.AuthenticatorRemovedDuringPinEntry:
+            rfr.AuthenticatorRemovedDuringPinEntry:
                 "The device was removed during verification. Please reinsert "
                 "and try again.",
-            R.AuthenticatorMissingResidentKeys:
+            rfr.AuthenticatorMissingResidentKeys:
                 "The device does not support resident keys.",
-            R.AuthenticatorMissingUserVerification:
+            rfr.AuthenticatorMissingUserVerification:
                 "The device is missing user verification.",
-            R.AuthenticatorMissingLargeBlob:
+            rfr.AuthenticatorMissingLargeBlob:
                 "The device does not support large blob storage.",
-            R.NoCommonAlgorithms:
+            rfr.NoCommonAlgorithms:
                 "No common algorithms between server and authenticator.",
-            R.StorageFull:
+            rfr.StorageFull:
                 "The storage on the device is full.",
-            R.UserConsentDenied:
+            rfr.UserConsentDenied:
                 "User consent was denied.",
-            R.WinUserCancelled:
+            rfr.WinUserCancelled:
                 "The request was cancelled.",
         }
         if reason not in texts:
@@ -1421,25 +1421,25 @@ class _WebEngineWebAuth(QObject):
         parts = []
 
         # PIN entry reason
-        R = QWebEngineWebAuthUxRequest.PinEntryReason
+        per = QWebEngineWebAuthUxRequest.PinEntryReason
         reason_texts = {
-            R.Set: "Please set a new PIN for your device:",
-            R.Change: "Please change the PIN for your device:",
-            R.Challenge: "Please enter the PIN for your device:",
+            per.Set: "Please set a new PIN for your device:",
+            per.Change: "Please change the PIN for your device:",
+            per.Challenge: "Please enter the PIN for your device:",
         }
         parts.append(reason_texts.get(pin_request.reason,
                                       "Please enter your PIN:"))
 
         # Previous error
-        E = QWebEngineWebAuthUxRequest.PinEntryError
+        pee = QWebEngineWebAuthUxRequest.PinEntryError
         error_texts = {
-            E.InternalUvLocked: "Internal verification locked, falling back to PIN.",
-            E.WrongPin: "Wrong PIN entered.",
-            E.TooShort: "PIN is too short.",
-            E.InvalidCharacters: "PIN contains invalid characters.",
-            E.SameAsCurrentPin: "New PIN must be different from current PIN.",
+            pee.InternalUvLocked: "Internal verification locked, falling back to PIN.",
+            pee.WrongPin: "Wrong PIN entered.",
+            pee.TooShort: "PIN is too short.",
+            pee.InvalidCharacters: "PIN contains invalid characters.",
+            pee.SameAsCurrentPin: "New PIN must be different from current PIN.",
         }
-        if pin_request.error != E.NoError:
+        if pin_request.error != pee.NoError:
             parts.append(f"<br><b>Error:</b> "
                          f"{error_texts.get(pin_request.error, 'Unknown error.')}")
 

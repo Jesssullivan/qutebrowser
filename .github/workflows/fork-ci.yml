@@ -172,7 +172,7 @@ jobs:
 
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
-          tar czf ~/rpmbuild/SOURCES/qutebrowser-${PKG_VERSION}.tar.gz \
+          tar czf ~/rpmbuild/SOURCES/"qutebrowser-${PKG_VERSION}.tar.gz" \
             --transform="s,^,qutebrowser-${PKG_VERSION}/," \
             qutebrowser/ misc/ setup.py pyproject.toml requirements.txt
 
@@ -242,7 +242,7 @@ jobs:
         include:
           - os: macos-14
             name: macos-apple-silicon
-          - os: macos-13
+          - os: macos-15-intel
             name: macos-intel
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45

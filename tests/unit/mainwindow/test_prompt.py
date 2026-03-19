@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
 import os
 
 import pytest
@@ -68,14 +69,16 @@ class TestSelectPrompt:
         assert prompt.accept("bob@example.com") is True
         assert prompt.question.answer == "bob@example.com"
 
-    def test_invalid_index(self, prompt):
+    def test_invalid_index(self, prompt, caplog):
         """Reject out-of-range index."""
-        assert prompt.accept("0") is False
-        assert prompt.accept("4") is False
+        with caplog.at_level(logging.ERROR, 'message'):
+            assert prompt.accept("0") is False
+            assert prompt.accept("4") is False
 
-    def test_invalid_string(self, prompt):
+    def test_invalid_string(self, prompt, caplog):
         """Reject string not in choices."""
-        assert prompt.accept("nobody@example.com") is False
+        with caplog.at_level(logging.ERROR, 'message'):
+            assert prompt.accept("nobody@example.com") is False
 
 
 class TestFileCompletion:

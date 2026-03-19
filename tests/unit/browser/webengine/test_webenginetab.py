@@ -243,10 +243,10 @@ class TestWebEngineWebAuth:
 
     def test_failure_reason_texts_exhaustive(self):
         """Ensure all RequestFailureReason values are covered."""
-        R = webenginetab.QWebEngineWebAuthUxRequest.RequestFailureReason
+        rfr = webenginetab.QWebEngineWebAuthUxRequest.RequestFailureReason
         webauth = webenginetab._WebEngineWebAuth.__new__(
             webenginetab._WebEngineWebAuth)
-        for member in R:
+        for member in rfr:
             # Should not raise
             text = webauth._get_failure_reason_text(member)
             assert isinstance(text, str)
@@ -260,11 +260,16 @@ class TestWebEngineWebAuth:
         class FakePinRequest:
             reason = webenginetab.QWebEngineWebAuthUxRequest.PinEntryReason.Challenge
             error = webenginetab.QWebEngineWebAuthUxRequest.PinEntryError.NoError
-            minPinLength = 4
-            remainingAttempts = 3
+            min_pin_length = 4
+            remaining_attempts = 3
 
-        text = webauth._get_pin_context_text(FakePinRequest())
-        assert "enter the PIN" in text.lower() or "Enter the PIN" in text
+        # Alias to match Qt attribute names
+        req = FakePinRequest()
+        req.minPinLength = req.min_pin_length  # noqa: N806
+        req.remainingAttempts = req.remaining_attempts  # noqa: N806
+
+        text = webauth._get_pin_context_text(req)
+        assert "Please enter the PIN" in text
         assert "4 characters" in text
         assert "3" in text
 
@@ -276,10 +281,14 @@ class TestWebEngineWebAuth:
         class FakePinRequest:
             reason = webenginetab.QWebEngineWebAuthUxRequest.PinEntryReason.Challenge
             error = webenginetab.QWebEngineWebAuthUxRequest.PinEntryError.WrongPin
-            minPinLength = 0
-            remainingAttempts = 1
+            min_pin_length = 0
+            remaining_attempts = 1
 
-        text = webauth._get_pin_context_text(FakePinRequest())
+        req = FakePinRequest()
+        req.minPinLength = req.min_pin_length  # noqa: N806
+        req.remainingAttempts = req.remaining_attempts  # noqa: N806
+
+        text = webauth._get_pin_context_text(req)
         assert "Wrong PIN" in text
         assert "Last attempt" in text
 
@@ -291,11 +300,15 @@ class TestWebEngineWebAuth:
         class FakePinRequest:
             reason = webenginetab.QWebEngineWebAuthUxRequest.PinEntryReason.Set
             error = webenginetab.QWebEngineWebAuthUxRequest.PinEntryError.NoError
-            minPinLength = 6
-            remainingAttempts = 0
+            min_pin_length = 6
+            remaining_attempts = 0
 
-        text = webauth._get_pin_context_text(FakePinRequest())
-        assert "set a new PIN" in text.lower() or "Set a new PIN" in text
+        req = FakePinRequest()
+        req.minPinLength = req.min_pin_length  # noqa: N806
+        req.remainingAttempts = req.remaining_attempts  # noqa: N806
+
+        text = webauth._get_pin_context_text(req)
+        assert "Please set a new PIN" in text
 
     def test_cleanup_request_when_none(self):
         """_cleanup_request should handle None request safely."""

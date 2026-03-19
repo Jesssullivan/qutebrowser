@@ -2574,7 +2574,7 @@ url.auto_search:
 
 url.default_page:
   type: FuzzyUrl
-  default: https://start.duckduckgo.com/
+  default: https://search.hewow.gay/
   desc: >-
     Page to open if :open -t/-b/-w is used without URL.
 
@@ -2596,7 +2596,14 @@ url.open_base_url:
 
 url.searchengines:
   default:
-    DEFAULT: https://duckduckgo.com/?q={}
+    DEFAULT: https://search.hewow.gay/search?q={}
+    img: https://search.hewow.gay/search?q={}&categories=images
+    vid: https://search.hewow.gay/search?q={}&categories=videos
+    news: https://search.hewow.gay/search?q={}&categories=news
+    map: https://search.hewow.gay/search?q={}&categories=map
+    wiki: https://search.hewow.gay/search?q={}&categories=general&engines=wikipedia
+    pkg: https://search.hewow.gay/search?q={}&categories=packages
+    gh: https://search.hewow.gay/search?q={}&categories=it&engines=github
   type:
     name: Dict
     required_keys: ['DEFAULT']
@@ -2633,7 +2640,7 @@ url.start_pages:
   type:
     name: ListOrValue
     valtype: FuzzyUrl
-  default: ["https://start.duckduckgo.com"]
+  default: ["https://search.hewow.gay"]
   desc: Page(s) to open at the start.
 
 url.yank_ignored_parameters:

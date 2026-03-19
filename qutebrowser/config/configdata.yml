@@ -44,7 +44,7 @@ changelog_after_upgrade:
       - patch: Show changelog for major, minor and patch upgrades
           (e.g. v2.0.0 -> v2.0.1).
       - never: Never show changelog after upgrades.
-  default: minor
+  default: never
   desc: When to show a changelog after qutebrowser was upgraded.
 
 ignore_case:
@@ -462,7 +462,7 @@ auto_save.session:
 ## content
 
 content.autoplay:
-  default: true
+  default: false
   type: Bool
   backend: QtWebEngine
   supports_pattern: true
@@ -527,7 +527,7 @@ content.cache.appcache:
     ask the application cache for the contents, before hitting the network.
 
 content.cookies.accept:
-  default: all
+  default: no-3rdparty
   supports_pattern: true
   type:
     name: String
@@ -625,7 +625,7 @@ content.developer_extras:
   deleted: true
 
 content.dns_prefetch:
-  default: true
+  default: false
   type: Bool
   backend: QtWebEngine
   supports_pattern: true
@@ -1317,7 +1317,7 @@ content.webrtc_ip_handling_policy:
       - disable-non-proxied-udp: WebRTC should only use TCP to contact peers or
             servers unless the proxy server supports UDP. This doesn't expose
             any local addresses either.
-  default: all-interfaces
+  default: default-public-interface-only
   backend: QtWebEngine
   restart: true
   desc: >-

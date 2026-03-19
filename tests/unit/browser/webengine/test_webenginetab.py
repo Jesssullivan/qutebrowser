@@ -255,7 +255,6 @@ class TestWebEngineWebAuth:
     @staticmethod
     def _make_pin_request(reason, error, min_length=0, remaining=0):
         """Create a fake QWebEngineWebAuthPinRequest-like object."""
-        ux = webenginetab.QWebEngineWebAuthUxRequest
         return type('FakePinRequest', (), {
             'reason': reason,
             'error': error,

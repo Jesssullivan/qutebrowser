@@ -1,6 +1,0 @@
-self-hosted-runner:
-  labels:
-    - tinyland-nix
-    - tinyland-docker
-    - tinyland-dind
-    - honey

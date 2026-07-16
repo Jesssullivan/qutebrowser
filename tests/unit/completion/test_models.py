@@ -633,10 +633,8 @@ def test_search_only_default(qtmodeltester, config_stub, web_history_populated,
 
 
 def test_url_completion_no_quickmarks(qtmodeltester, web_history_populated,
-                                      quickmark_manager_stub, bookmarks, info,
-                                      config_stub):
+                                      quickmark_manager_stub, bookmarks, info):
     """Test that the quickmark category is gone with no quickmarks."""
-    config_stub.val.url.searchengines = {'DEFAULT': 'https://example.com/?q={}'}
     model = urlmodel.url(info=info)
     model.set_pattern('')
     qtmodeltester.check(model)
@@ -657,10 +655,8 @@ def test_url_completion_no_quickmarks(qtmodeltester, web_history_populated,
 
 
 def test_url_completion_no_bookmarks(qtmodeltester, web_history_populated,
-                                     quickmarks, bookmark_manager_stub, info,
-                                     config_stub):
+                                     quickmarks, bookmark_manager_stub, info):
     """Test that the bookmarks category is gone with no bookmarks."""
-    config_stub.val.url.searchengines = {'DEFAULT': 'https://example.com/?q={}'}
     model = urlmodel.url(info=info)
     model.set_pattern('')
     qtmodeltester.check(model)
@@ -699,10 +695,9 @@ def test_url_completion_no_bookmarks(qtmodeltester, web_history_populated,
     ('foobar', '', '%', 0),
 ])
 def test_url_completion_pattern(web_history, quickmark_manager_stub,
-                                bookmark_manager_stub, info, config_stub,
+                                bookmark_manager_stub, info,
                                 url, title, pattern, rowcount):
     """Test that url completion filters by url and title."""
-    config_stub.val.url.searchengines = {'DEFAULT': 'https://example.com/?q={}'}
     web_history.add_url(QUrl(url), title)
     model = urlmodel.url(info=info)
     model.set_pattern(pattern)
@@ -711,10 +706,8 @@ def test_url_completion_pattern(web_history, quickmark_manager_stub,
 
 
 def test_url_completion_delete_bookmark(qtmodeltester, bookmarks,
-                                        web_history, quickmarks, info,
-                                        config_stub):
+                                        web_history, quickmarks, info):
     """Test deleting a bookmark from the url completion model."""
-    config_stub.val.url.searchengines = {'DEFAULT': 'https://example.com/?q={}'}
     model = urlmodel.url(info=info)
     model.set_pattern('')
     qtmodeltester.check(model)
@@ -734,10 +727,8 @@ def test_url_completion_delete_bookmark(qtmodeltester, bookmarks,
 
 
 def test_url_completion_delete_quickmark(qtmodeltester, info, qtbot,
-                                         quickmarks, web_history, bookmarks,
-                                         config_stub):
+                                         quickmarks, web_history, bookmarks):
     """Test deleting a bookmark from the url completion model."""
-    config_stub.val.url.searchengines = {'DEFAULT': 'https://example.com/?q={}'}
     model = urlmodel.url(info=info)
     model.set_pattern('')
     qtmodeltester.check(model)
@@ -758,9 +749,8 @@ def test_url_completion_delete_quickmark(qtmodeltester, info, qtbot,
 
 def test_url_completion_delete_history(qtmodeltester, info,
                                        web_history_populated,
-                                       quickmarks, bookmarks, config_stub):
+                                       quickmarks, bookmarks):
     """Test deleting a history entry."""
-    config_stub.val.url.searchengines = {'DEFAULT': 'https://example.com/?q={}'}
     model = urlmodel.url(info=info)
     model.set_pattern('')
     qtmodeltester.check(model)

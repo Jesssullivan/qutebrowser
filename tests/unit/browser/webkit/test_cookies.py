@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Alexander Cogneau (acogneau) <alexander.cogneau@gmail.com>:
-# SPDX-FileCopyrightText: Freya Bruhin (The Compiler) <mail@qutebrowser.org>
+# SPDX-FileCopyrightText: Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -110,7 +110,7 @@ class TestSetCookies:
         monkeypatch.setattr(objects, 'debug_flags', ['log-cookies'])
         ram_jar.setCookiesFromUrl([cookie], url)
 
-        expected = "Cookie on http://example.com/ -> applying setting no-3rdparty"
+        expected = "Cookie on http://example.com/ -> applying setting all"
         assert caplog.messages == [expected]
 
 

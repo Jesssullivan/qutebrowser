@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Freya Bruhin (The Compiler) <mail@qutebrowser.org>
+# SPDX-FileCopyrightText: Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -13,8 +13,8 @@ bdd.scenarios('downloads.feature')
 
 
 PROMPT_MSG = ("Asking question <qutebrowser.utils.usertypes.Question "
-              "choices=None default={!r} mode=<PromptMode.download: 5> "
-              "option=None text=* title='Save file to:'>, *")
+              "default={!r} mode=<PromptMode.download: 5> option=None "
+              "text=* title='Save file to:'>, *")
 
 
 @pytest.fixture

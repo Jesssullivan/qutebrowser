@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Freya Bruhin (The Compiler) <mail@qutebrowser.org>
+# SPDX-FileCopyrightText: Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -21,7 +21,7 @@ from qutebrowser.misc import miscwidgets
 
 
 # FIXME:mypy How to annotate this properly without running into Liskov issues?
-_WidgetType = Any  # pylint: disable=invalid-name
+_WidgetType = Any
 
 
 class Position(enum.Enum):

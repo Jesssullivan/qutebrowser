@@ -38,15 +38,12 @@ exclude qutebrowser/javascript/.eslintrc.yaml
 exclude qutebrowser/javascript/.eslintignore
 exclude doc/help
 exclude .*
-exclude flake.nix
-exclude flake.lock
 exclude misc/qutebrowser.spec
 exclude misc/qutebrowser.rcc
 exclude tests/unit/scripts/test_run_vulture.py
 exclude tests/unit/scripts/test_check_coverage.py
 prune doc/extapi
 prune misc/nsis
-prune nix
 prune **/.mypy_cache
 
 global-exclude __pycache__ *.pyc *.pyo

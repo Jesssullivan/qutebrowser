@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Freya Bruhin (The Compiler) <mail@qutebrowser.org>
+# SPDX-FileCopyrightText: Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -47,10 +47,6 @@ class Request(testprocess.Line):
 
     def _check_status(self):
         """Check if the http status is what we expected."""
-        redirect_statuses = [
-            HTTPStatus.FOUND,  # Werkzeug < 3.2.0
-            HTTPStatus.SEE_OTHER,  # Werkzeug >= 3.2.0
-        ]
         path_to_statuses = {
             '/favicon.ico': [
                 HTTPStatus.OK,
@@ -62,21 +58,21 @@ class Request(testprocess.Line):
             '/does-not-exist-2': [HTTPStatus.NOT_FOUND],
             '/404': [HTTPStatus.NOT_FOUND],
 
-            '/redirect-later': redirect_statuses,
-            '/redirect-self': redirect_statuses,
-            '/redirect-to': redirect_statuses,
-            '/relative-redirect': redirect_statuses,
-            '/absolute-redirect': redirect_statuses,
-            '/redirect-http/data/downloads/download.bin': redirect_statuses,
+            '/redirect-later': [HTTPStatus.FOUND],
+            '/redirect-self': [HTTPStatus.FOUND],
+            '/redirect-to': [HTTPStatus.FOUND],
+            '/relative-redirect': [HTTPStatus.FOUND],
+            '/absolute-redirect': [HTTPStatus.FOUND],
+            '/redirect-http/data/downloads/download.bin': [HTTPStatus.FOUND],
 
-            '/cookies/set': redirect_statuses,
-            '/cookies/set-custom': redirect_statuses,
+            '/cookies/set': [HTTPStatus.FOUND],
+            '/cookies/set-custom': [HTTPStatus.FOUND],
 
             '/500-inline': [HTTPStatus.INTERNAL_SERVER_ERROR],
             '/500': [HTTPStatus.INTERNAL_SERVER_ERROR],
         }
         for i in range(25):
-            path_to_statuses['/redirect/{}'.format(i)] = redirect_statuses
+            path_to_statuses['/redirect/{}'.format(i)] = [HTTPStatus.FOUND]
         for suffix in ['', '1', '2', '3', '4', '5', '6']:
             key = ('/basic-auth/user{suffix}/password{suffix}'
                    .format(suffix=suffix))

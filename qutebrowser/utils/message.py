@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Freya Bruhin (The Compiler) <mail@qutebrowser.org>
+# SPDX-FileCopyrightText: Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -111,8 +111,7 @@ def _build_question(title: str,
                     default: Union[None, bool, str] = None,
                     abort_on: Iterable[pyqtBoundSignal] = (),
                     url: str = None,
-                    option: bool = None,
-                    choices: list[str] = None) -> usertypes.Question:
+                    option: bool = None) -> usertypes.Question:
     """Common function for ask/ask_async."""
     question = usertypes.Question()
     question.title = title
@@ -123,14 +122,10 @@ def _build_question(title: str,
 
     if option is not None:
         if mode != usertypes.PromptMode.yesno:
-            raise ValueError("Can only use 'option' with PromptMode.yesno")
+            raise ValueError("Can only 'option' with PromptMode.yesno")
         if url is None:
             raise ValueError("Need 'url' given when 'option' is given")
     question.option = option
-
-    if choices is not None and mode != usertypes.PromptMode.select:
-        raise ValueError("Can only use 'choices' with PromptMode.select")
-    question.choices = choices
 
     for sig in abort_on:
         sig.connect(question.abort)

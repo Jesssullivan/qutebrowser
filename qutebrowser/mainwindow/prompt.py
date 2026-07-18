@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Freya Bruhin (The Compiler) <mail@qutebrowser.org>
+# SPDX-FileCopyrightText: Florian Bruhin (The Compiler) <mail@qutebrowser.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -317,8 +317,6 @@ class PromptContainer(QWidget):
             usertypes.PromptMode.user_pwd: AuthenticationPrompt,
             usertypes.PromptMode.download: DownloadFilenamePrompt,
             usertypes.PromptMode.alert: AlertPrompt,
-            usertypes.PromptMode.pwd: PasswordPrompt,
-            usertypes.PromptMode.select: SelectPrompt,
         }
         klass = classes[question.mode]
         prompt = klass(question)
@@ -1046,44 +1044,6 @@ class AlertPrompt(_BasePrompt):
 
     def _allowed_commands(self):
         return [('prompt-accept', "Hide")]
-
-
-class PasswordPrompt(LineEditPrompt):
-
-    """A prompt for a password/PIN value."""
-
-    def __init__(self, question, parent=None):
-        super().__init__(question, parent)
-        self._lineedit.setEchoMode(QLineEdit.EchoMode.Password)
-
-
-class SelectPrompt(LineEditPrompt):
-
-    """A prompt for selecting one out of multiple choices.
-
-    Accepts both a 1-based numeric index and an exact string match.
-    """
-
-    def accept(self, value=None, save=False):
-        self._check_save_support(save)
-        text = value if value is not None else self._lineedit.text()
-
-        # Try numeric index (1-based)
-        try:
-            idx = int(text) - 1
-            if 0 <= idx < len(self.question.choices):
-                self.question.answer = self.question.choices[idx]
-                return True
-        except (ValueError, TypeError):
-            pass
-
-        # Try exact string match
-        if text in self.question.choices:
-            self.question.answer = text
-            return True
-
-        message.error(f"Invalid selection: {text}")
-        return False
 
 
 def init():

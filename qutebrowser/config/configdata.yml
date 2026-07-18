@@ -44,7 +44,7 @@ changelog_after_upgrade:
       - patch: Show changelog for major, minor and patch upgrades
           (e.g. v2.0.0 -> v2.0.1).
       - never: Never show changelog after upgrades.
-  default: never
+  default: minor
   desc: When to show a changelog after qutebrowser was upgraded.
 
 ignore_case:
@@ -462,7 +462,7 @@ auto_save.session:
 ## content
 
 content.autoplay:
-  default: false
+  default: true
   type: Bool
   backend: QtWebEngine
   supports_pattern: true
@@ -527,7 +527,7 @@ content.cache.appcache:
     ask the application cache for the contents, before hitting the network.
 
 content.cookies.accept:
-  default: no-3rdparty
+  default: all
   supports_pattern: true
   type:
     name: String
@@ -625,7 +625,7 @@ content.developer_extras:
   deleted: true
 
 content.dns_prefetch:
-  default: false
+  default: true
   type: Bool
   backend: QtWebEngine
   supports_pattern: true
@@ -1288,14 +1288,6 @@ content.user_stylesheets:
   default: []
   desc: List of user stylesheet filenames to use.
 
-content.webauthn:
-  default: true
-  type: Bool
-  supports_pattern: true
-  backend: QtWebEngine
-  desc: Allow websites to use WebAuthn (FIDO2/passkey) for authentication.
-    Requires Qt 6.7 or newer.
-
 content.webgl:
   default: true
   type: Bool
@@ -1317,7 +1309,7 @@ content.webrtc_ip_handling_policy:
       - disable-non-proxied-udp: WebRTC should only use TCP to contact peers or
             servers unless the proxy server supports UDP. This doesn't expose
             any local addresses either.
-  default: default-public-interface-only
+  default: all-interfaces
   backend: QtWebEngine
   restart: true
   desc: >-
@@ -2574,7 +2566,7 @@ url.auto_search:
 
 url.default_page:
   type: FuzzyUrl
-  default: https://search.hewow.gay/
+  default: https://start.duckduckgo.com/
   desc: >-
     Page to open if :open -t/-b/-w is used without URL.
 
@@ -2596,14 +2588,7 @@ url.open_base_url:
 
 url.searchengines:
   default:
-    DEFAULT: https://search.hewow.gay/search?q={}
-    img: https://search.hewow.gay/search?q={}&categories=images
-    vid: https://search.hewow.gay/search?q={}&categories=videos
-    news: https://search.hewow.gay/search?q={}&categories=news
-    map: https://search.hewow.gay/search?q={}&categories=map
-    wiki: https://search.hewow.gay/search?q={}&categories=general&engines=wikipedia
-    pkg: https://search.hewow.gay/search?q={}&categories=packages
-    gh: https://search.hewow.gay/search?q={}&categories=it&engines=github
+    DEFAULT: https://duckduckgo.com/?q={}
   type:
     name: Dict
     required_keys: ['DEFAULT']
@@ -2640,7 +2625,7 @@ url.start_pages:
   type:
     name: ListOrValue
     valtype: FuzzyUrl
-  default: ["https://search.hewow.gay"]
+  default: ["https://start.duckduckgo.com"]
   desc: Page(s) to open at the start.
 
 url.yank_ignored_parameters:
